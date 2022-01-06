@@ -1,12 +1,26 @@
+# Module for the portfolio object that will be used for testing different Dollar Cost Averaging methods using different approaches to the underlying sectors.
+
+######################################################################################################################
+# ENTIRE MODULE NEEDS TO BE REFACTORED TO TAKE PRICES ON HISTORICAL DATES HOW COULD YOU MISS THIS?!?!?!?!?!?!?!?!?!?!#
+######################################################################################################################
+
 import yahoo_fin.stock_info as si
+import os
+import pandas as pd
+import datetime
+
 
 class Portfolio:
 
-    def __init__(self, cash: float = 100000) -> None:
+    def __init__(self, cash: float = 100000, start_date = datetime.datetime(2001, 1, 1), end_date = datetime.datetime(2021, 1, 1) ) -> None:
         """Constructor for Portfolio instance."""
         
-        self.portfolio = {}
+        self.portfolio = dict()
         self.cash = cash
+        self.data = self.load_data()
+        self.start_date = start_date
+        self.end_date = end_date
+
 
     def add(self, symbol: str) -> None:
         """Add a symbol to the portfolio at specified share count and cost."""
@@ -88,7 +102,7 @@ class Portfolio:
             return
 
         # cash value of weight percentage relative to total value of portfolio and cash
-        weight_cost = (self.cash + self.get_portfolio_value()) * weight
+        weight_cost = (self.cash + self.get_holdings_value()) * weight
 
         # highest price stock in portfolio
         min_price = self.find_most_expensive()
@@ -128,8 +142,8 @@ class Portfolio:
 
 
 
-    def get_portfolio_value(self) -> float:
-        """Determine and return the cash value of all elements of the porfolio."""
+    def get_holdings_value(self) -> float:
+        """Determine and return the cash value of all holdings in the porfolio."""
 
         total = 0
 
@@ -138,6 +152,12 @@ class Portfolio:
             total += shares * si.get_live_price(fund)
 
         return total
+
+
+    def get_portfolio_value(self) -> float:
+        """Returns the total value of the portfolio including cash assets."""
+
+        return self.cash + self.get_holdings_value()
 
 
     def find_most_expensive(self) -> float:
@@ -151,6 +171,27 @@ class Portfolio:
                 max_price = price
 
         return max_price
+
+
+    def get_hist_price(self, symbol: str, date: datetime.datetime) -> float:
+        # find the price history dataframe in self.data by searching self.data.keys
+        # use a pandas search method to find the date in the date column and access the row
+            # grab the desired price data from the date (probably open price)
+        # return the price found
+        pass
+
+
+    def load_data(self) -> dict:
+        """Loads the csv type historical price data into a dict of references."""
+
+        data = dict()
+
+        for csv in os.listdir('sector_historical'):
+            df = pd.read_csv(f'sector_historical/{csv}')
+            name = csv[:4] # remove '.csv'
+            data[name] = df # add to data
+
+        return data
 
 
     def get_share_count(self, symbol: str) -> int:
