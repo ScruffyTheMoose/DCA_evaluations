@@ -89,6 +89,29 @@ class Portfolio:
 
         weight_cost = (self.cash + self.get_portfolio_value()) * weight
 
+        if weight_cost < 300:
+            print('Weight percentage requires too small quantity of cash making rebalancing impossible.')
+            return
+
+        need_purchase = []
+        complete = []
+
+        for fund in self.portfolio.keys:
+            shares = self.get_share_count(fund)
+            price = si.get_live_price(fund)
+            value = price * shares
+
+            # selling shares until at or below weight_cost
+            while value > weight_cost:
+                self.sell(fund)
+                value = price * (shares - 1)
+
+            # purchasing shares until at or below weight_cost if possible
+            while (value + price) <= weight_cost:
+                self.buy(fund)
+                value = price * (shares + 1)
+
+
 
     def get_portfolio_value(self) -> float:
         """Determine and return the cash value of all elements of the porfolio."""
