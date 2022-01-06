@@ -87,15 +87,21 @@ class Portfolio:
         if weight * len(self.portfolio.keys) > 100:
             return
 
+        # cash value of weight percentage relative to total value of portfolio and cash
         weight_cost = (self.cash + self.get_portfolio_value()) * weight
 
-        if weight_cost < 300:
+        # highest price stock in portfolio
+        min_price = self.find_most_expensive()
+
+        # can we afford to buy atleast 1 share of most expensive stock?
+        if weight_cost < min_price:
             print('Weight percentage requires too small quantity of cash making rebalancing impossible.')
             return
 
+        # for tracking holdings that need more shares. They will be done after selling off extra shares to ensure there is enough cash available
         need_purchase = []
-        complete = []
 
+        # checking all funds in holdings and selling off shares until weight is met from above
         for fund in self.portfolio.keys:
             shares = self.get_share_count(fund)
             price = si.get_live_price(fund)
@@ -106,7 +112,16 @@ class Portfolio:
                 self.sell(fund)
                 value = price * (shares - 1)
 
-            # purchasing shares until at or below weight_cost if possible
+            # if there is room for an additional share, store reference for rehandling
+            if (value + price) <= weight_cost:
+                need_purchase.append(fund)
+
+        # handling holdings that need additional shares
+        for fund in need_purchase:
+            shares = self.get_share_count(fund)
+            price = si.get_live_price(fund)
+            value = price * shares
+
             while (value + price) <= weight_cost:
                 self.buy(fund)
                 value = price * (shares + 1)
@@ -123,6 +138,19 @@ class Portfolio:
             total += shares * si.get_live_price(fund)
 
         return total
+
+
+    def find_most_expensive(self) -> float:
+        """Returns the element of the portfolio which has the highest stock price for validating weight ratio."""
+
+        max_price = 0
+
+        for fund in self.portfolio.keys:
+            price = si.get_live_price(fund)
+            if price > max_price:
+                max_price = price
+
+        return max_price
 
 
     def get_share_count(self, symbol: str) -> int:
