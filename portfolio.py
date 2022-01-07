@@ -1,10 +1,5 @@
 # Module for the portfolio object that will be used for testing different Dollar Cost Averaging methods using different approaches to the underlying sectors.
 
-######################################################################################################################
-# ENTIRE MODULE NEEDS TO BE REFACTORED TO TAKE PRICES ON HISTORICAL DATES HOW COULD YOU MISS THIS?!?!?!?!?!?!?!?!?!?!#
-######################################################################################################################
-
-import yahoo_fin.stock_info as si
 import os
 import pandas as pd
 import datetime
@@ -12,7 +7,7 @@ import datetime
 
 class Portfolio:
 
-    def __init__(self, cash: float = 100000, start_date = datetime.datetime(2001, 1, 1), end_date = datetime.datetime(2021, 1, 1) ) -> None:
+    def __init__(self, cash: float = 100000, start_date = datetime.date(2001, 1, 1), end_date = datetime.date(2021, 1, 1) ) -> None:
         """Constructor for Portfolio instance."""
         
         self.portfolio = dict()
@@ -45,10 +40,10 @@ class Portfolio:
             return
 
 
-    def buy(self, symbol: str) -> None:
+    def buy(self, symbol: str, date: str) -> None:
         """Purchase single share of given symbol."""
 
-        cost = si.get_live_price(symbol)
+        cost = self.get_price(symbol, date)
 
         if self.cash >= cost:
             self.portfolio[symbol]['shares'] += 1
@@ -56,10 +51,10 @@ class Portfolio:
             self.cash -= cost
 
 
-    def sell(self, symbol: str) -> None:
+    def sell(self, symbol: str, date: str) -> None:
         """Sell single share of given symbol."""
 
-        price = si.get_live_price(symbol)
+        price = self.get_price(symbol, date)
 
         if symbol in self.portfolio.keys:
             if self.portfolio[symbol]['shares'] >= 1:
@@ -69,10 +64,10 @@ class Portfolio:
                 self.cash += price
 
 
-    def bulk_buy(self, symbol: str, quantity: int) -> None:
+    def bulk_buy(self, symbol: str, quantity: int, date: str) -> None:
         """Update portfolio with new share count and cost after purchase of given quantity of shares."""
 
-        price = si.get_live_price(symbol)
+        price = self.get_price(symbol, date)
         cost = price * quantity
 
         if self.cash >= cost:
@@ -81,10 +76,10 @@ class Portfolio:
             self.cash -= cost
 
 
-    def sell_bulk(self, symbol: str, quantity: int) -> None:
+    def sell_bulk(self, symbol: str, quantity: int, date: str) -> None:
         """Update portfolio with new share count and cost after selling of given quantity of shares."""
 
-        price = si.get_live_price(symbol)
+        price = self.get_price(symbol, date)
 
         if symbol in self.portfolio.keys:
             if self.portfolio[symbol]['shares'] >= quantity:
@@ -94,7 +89,7 @@ class Portfolio:
                 self.cash += price * quantity
 
 
-    def balance_portfolio(self, weight: float = .1) -> None:
+    def balance_portfolio(self, weight: float, date: str) -> None:
         """Rebalances the portfolio so that each element of the holdings represents the given weight."""
     
         # checking that weight is possible with size of portfolio
@@ -118,7 +113,7 @@ class Portfolio:
         # checking all funds in holdings and selling off shares until weight is met from above
         for fund in self.portfolio.keys:
             shares = self.get_share_count(fund)
-            price = si.get_live_price(fund)
+            price = self.get_price(fund, date)
             value = price * shares
 
             # selling shares until at or below weight_cost
@@ -133,7 +128,7 @@ class Portfolio:
         # handling holdings that need additional shares
         for fund in need_purchase:
             shares = self.get_share_count(fund)
-            price = si.get_live_price(fund)
+            price = self.get_price(fund, date)
             value = price * shares
 
             while (value + price) <= weight_cost:
@@ -142,14 +137,14 @@ class Portfolio:
 
 
 
-    def get_holdings_value(self) -> float:
+    def get_holdings_value(self, date: str) -> float:
         """Determine and return the cash value of all holdings in the porfolio."""
 
         total = 0
 
         for fund in self.portfolio.keys:
             shares = self.portfolio[fund]['shares']
-            total += shares * si.get_live_price(fund)
+            total += shares * self.get_price(fund, date)
 
         return total
 
@@ -160,25 +155,36 @@ class Portfolio:
         return self.cash + self.get_holdings_value()
 
 
-    def find_most_expensive(self) -> float:
+    def find_most_expensive(self, date: str) -> float:
         """Returns the element of the portfolio which has the highest stock price for validating weight ratio."""
 
         max_price = 0
 
         for fund in self.portfolio.keys:
-            price = si.get_live_price(fund)
+            price = self.get_price(fund, date)
             if price > max_price:
                 max_price = price
 
         return max_price
 
 
-    def get_hist_price(self, symbol: str, date: datetime.datetime) -> float:
-        # find the price history dataframe in self.data by searching self.data.keys
-        # use a pandas search method to find the date in the date column and access the row
-            # grab the desired price data from the date (probably open price)
-        # return the price found
-        pass
+    def get_price(self, symbol: str, date: str) -> float:
+        """
+        Find and return the historical price of a ticker pulled from stored data.
+        Date format: YYYY-MM-DD
+        """
+
+        # locating the dataframe is self.data
+        df = self.find_data(symbol)
+        
+        # attempting to locate and return the opening price at the given date
+        try:
+            row = df.loc(df['Unnamed: 0'] == date)
+            return row['open'][0]
+        # if price not found, returns -1 as sentinel value
+        except:
+            print('Could not locate price data at the given date, returning -1...')
+            return -1
 
 
     def load_data(self) -> dict:
@@ -192,6 +198,15 @@ class Portfolio:
             data[name] = df # add to data
 
         return data
+
+
+    def find_data(self, symbol: str) -> pd.DataFrame:
+        """Finds and returns the dataframe for a given symbol in self.data."""
+
+        # linear search for dataframe and return
+        for key in self.data.keys:
+            if key == symbol:
+                return self.data[key]
 
 
     def get_share_count(self, symbol: str) -> int:
