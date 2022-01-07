@@ -209,6 +209,12 @@ class Portfolio:
                 return self.data[key]
 
 
+    def deposit(self, amount: float) -> None:
+        """Mutator for cash - Deposit additional funds to the cashstack."""
+
+        self.cash += amount
+
+
     def get_share_count(self, symbol: str) -> int:
         """Accessor for share count of symbol."""
 
