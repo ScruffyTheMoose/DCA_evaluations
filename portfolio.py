@@ -2,19 +2,17 @@
 
 import os
 import pandas as pd
-import datetime
 
 
 class Portfolio:
 
-    def __init__(self, cash: float = 100000, start_date = datetime.date(2001, 1, 1), end_date = datetime.date(2021, 1, 1) ) -> None:
+    def __init__(self, cash: float = 100000, start_date = '2001-01-01', end_date = '2021-01-01') -> None:
         """Constructor for Portfolio instance."""
         
         self.portfolio = dict()
         self.cash = cash
         self.data = self.load_data()
-        self.start_date = start_date
-        self.end_date = end_date
+        self.datelist = self.data['XLB']['Unnamed: 0'].tolist()
 
 
     def add(self, symbol: str) -> None:
@@ -210,9 +208,10 @@ class Portfolio:
 
         data = dict()
 
+        # not very modular, specific directory hard coded
         for csv in os.listdir('sector_historical'):
             df = pd.read_csv(f'sector_historical/{csv}')
-            name = csv[:4] # remove '.csv'
+            name = csv[:-4] # remove '.csv'
             data[name] = df # add to data
 
         return data
@@ -249,3 +248,9 @@ class Portfolio:
         """Accessor for cash."""
 
         return self.cash
+
+
+    def get_datelist(self) -> list:
+        """Accessor for datelist."""
+
+        return self.datelist
