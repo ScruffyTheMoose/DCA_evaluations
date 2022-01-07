@@ -12,6 +12,8 @@ class Portfolio:
         self.portfolio = dict()
         self.cash = cash
         self.data = self.load_data()
+
+        # not modular, picked random symbol because we know all elements have same timeframe
         self.datelist = self.data['XLB']['Unnamed: 0'].tolist()
 
 
@@ -78,7 +80,20 @@ class Portfolio:
         """Purchase the maximum number of shares possible until cash exhausted."""
 
         price = self.get_price(symbol, date)
-        quantity = self.cash / price
+        quantity = int(self.cash / price)
+
+        self.bulk_buy(symbol, quantity, date)
+
+
+    def value_buy(self, symbol: str, amount: float, date: str) -> None:
+        """Purchase maximum amount of shares with amount of cash given."""
+
+        # check that amount given does not exceed total cashstack
+        if amount > self.cash:
+            return
+
+        price = self.get_price(symbol, date)
+        quantity = int(amount / price)
 
         self.bulk_buy(symbol, quantity, date)
 
@@ -105,8 +120,18 @@ class Portfolio:
         # could optionally add self.remove(symbol)
 
 
+    def even_balance(self, date: str) -> None:
+        """Gives equal weight to all elements of the portfolio."""
+
+        weight = 1 / len(self.portfolio.keys())
+
+        self.balance_portfolio(weight, date)
+        pass
+
+
     def balance_portfolio(self, weight: float, date: str) -> None:
         """Rebalances the portfolio so that each element of the holdings represents the given weight."""
+        # weight given as decimal (Ex: 0.1 instead of 10)
     
         # checking that weight is possible with size of portfolio
         if weight * len(self.portfolio.keys) > 100:
@@ -150,7 +175,6 @@ class Portfolio:
             while (value + price) <= weight_cost:
                 self.buy(fund)
                 value = price * (shares + 1)
-
 
 
     def get_holdings_value(self, date: str) -> float:
@@ -201,6 +225,20 @@ class Portfolio:
         except:
             print('Could not locate price data at the given date, returning -1...')
             return -1
+
+
+    def underperformer(self, start_date: str, end_date: str) -> str:
+        """Determines which element of the portfolio performed the worst from start_date to end_date (inclusive)."""
+
+        stats = dict()
+
+        for fund in self.portfolio.keys:
+            start = self.get_price(fund, start_date)
+            end = self.get_price(fund, end_date)
+            change = (end - start) / start
+            stats[fund] = change
+        
+        return min(stats, key=stats.get)
 
 
     def load_data(self) -> dict:

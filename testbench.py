@@ -10,4 +10,7 @@ import datetime as dt
 
 portfolio = Portfolio()
 
-print(portfolio.data.keys())
+print(len(portfolio.portfolio.keys()))
+
+# month = '2001-01-01'
+# print(month[5:7])
