@@ -76,7 +76,16 @@ class Portfolio:
             self.cash -= cost
 
 
-    def sell_bulk(self, symbol: str, quantity: int, date: str) -> None:
+    def max_buy(self, symbol: str, date: str) -> None:
+        """Purchase the maximum number of shares possible until cash exhausted."""
+
+        price = self.get_price(symbol, date)
+        quantity = self.cash / price
+
+        self.bulk_buy(symbol, quantity, date)
+
+
+    def bulk_sell(self, symbol: str, quantity: int, date: str) -> None:
         """Update portfolio with new share count and cost after selling of given quantity of shares."""
 
         price = self.get_price(symbol, date)
@@ -87,6 +96,15 @@ class Portfolio:
                 self.portfolio[symbol]['shares'] -= quantity
                 self.portfolio[symbol]['cost'] -= avg_cost * quantity
                 self.cash += price * quantity
+
+
+    def max_sell(self, symbol: str, date: str) -> None:
+        """Sell all shares from holdings of a given symbol."""
+
+        quantity = self.portfolio[symbol]['shares']
+
+        self.bulk_sell(symbol, quantity, date)
+        # could optionally add self.remove(symbol)
 
 
     def balance_portfolio(self, weight: float, date: str) -> None:
