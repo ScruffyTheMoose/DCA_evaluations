@@ -12,6 +12,7 @@ class Portfolio:
         self.portfolio = dict()
         self.cash = cash
         self.data = self.load_data()
+        self.deposit_track = cash
 
         # not modular, picked random symbol because we know all elements have same timeframe
         self.datelist = self.data['XLB']['Unnamed: 0'].tolist()
@@ -157,14 +158,13 @@ class Portfolio:
             price = self.get_price(fund, date)
             value = price * shares
 
-            # selling shares until at or below weight_cost
-            while value > weight_cost:
-                self.sell(fund, date)
-                value = price * (shares - 1)
-
-            # if there is room for an additional share, store reference for rehandling
+            # if there is room for an additional share or more, store reference for rehandling
             if (value + price) <= weight_cost:
                 need_purchase.append(fund)
+            # if the value exceeds weight_cost, determine number of shares to sell and call bulk_sell
+            else:
+                quantity = int((value - weight_cost) / price)
+                self.bulk_sell(fund, quantity, date)
 
         # handling holdings that need additional shares
         for fund in need_purchase:
@@ -229,7 +229,7 @@ class Portfolio:
             ValueError
 
 
-    def underperformer(self, start_date: str, end_date: str) -> str:
+    def low_performer(self, start_date: str, end_date: str) -> str:
         """Determines which element of the portfolio performed the worst from start_date to end_date (inclusive)."""
 
         stats = dict()
@@ -241,6 +241,20 @@ class Portfolio:
             stats[fund] = change
         
         return min(stats, key=stats.get)
+
+
+    def high_performer(self, start_date: str, end_date: str) -> str:
+        """Determines which element of the portfolio performed the best from start_date to end_date (inclusive)."""
+
+        stats = dict()
+
+        for fund in self.portfolio.keys():
+            start = self.get_price(fund, start_date)
+            end = self.get_price(fund, end_date)
+            change = (end - start) / start
+            stats[fund] = change
+
+        return max(stats, key=stats.get)
 
 
     def load_data(self) -> dict:
@@ -268,8 +282,14 @@ class Portfolio:
 
     def deposit(self, amount: float) -> None:
         """Mutator for cash - Deposit additional funds to the cashstack."""
-
+        self.deposit_track += amount
         self.cash += amount
+
+
+    def get_deposit_track(self) -> float:
+        """Accessor for the total amount of cash deposited to the account."""
+
+        return self.deposit_track
 
 
     def get_share_count(self, symbol: str) -> int:

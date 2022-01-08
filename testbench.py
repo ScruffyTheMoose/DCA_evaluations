@@ -8,16 +8,14 @@ import datetime as dt
 
 # row = df.loc[df['Unnamed: 0'] == '2001-01-02']
 
-portfolio = Portfolio()
+# portfolio = Portfolio()
 
-dates = portfolio.get_datelist()
+# dates = portfolio.get_datelist()
 
-print(dates[0])
+# print(dates[0])
 
-df = portfolio.find_data('XLK')
+# df = portfolio.find_data('XLK')
 
-print(portfolio.get_price('XLK', '2001-01-19'))
+# print(portfolio.get_price('XLK', '2001-01-19'))
 
-# print(df)
-
-# print(df.loc[df['Unnamed: 0'] == '2001-01-03'])
+print('01-12' < '02-01')
