@@ -21,7 +21,7 @@ class Portfolio:
         """Add a symbol to the portfolio at specified share count and cost."""
 
         # checking for key to prevent overwriting
-        if symbol in self.portfolio.keys:
+        if symbol in self.portfolio:
             return
 
         # writing new element to portfolio
@@ -56,7 +56,7 @@ class Portfolio:
 
         price = self.get_price(symbol, date)
 
-        if symbol in self.portfolio.keys:
+        if symbol in self.portfolio.keys():
             if self.portfolio[symbol]['shares'] >= 1:
                 avg_cost = self.portfolio[symbol]['cost'] / self.portfolio[symbol]['shares']
                 self.portfolio[symbol]['shares'] -= 1
@@ -103,7 +103,7 @@ class Portfolio:
 
         price = self.get_price(symbol, date)
 
-        if symbol in self.portfolio.keys:
+        if symbol in self.portfolio.keys():
             if self.portfolio[symbol]['shares'] >= quantity:
                 avg_cost = self.portfolio[symbol]['cost'] / self.portfolio[symbol]['shares']
                 self.portfolio[symbol]['shares'] -= quantity
@@ -126,7 +126,6 @@ class Portfolio:
         weight = 1 / len(self.portfolio.keys())
 
         self.balance_portfolio(weight, date)
-        pass
 
 
     def balance_portfolio(self, weight: float, date: str) -> None:
@@ -134,14 +133,15 @@ class Portfolio:
         # weight given as decimal (Ex: 0.1 instead of 10)
     
         # checking that weight is possible with size of portfolio
-        if weight * len(self.portfolio.keys) > 100:
+        if weight * len(self.portfolio.keys()) > 100:
+            print('weight too large, breaking...')
             return
 
         # cash value of weight percentage relative to total value of portfolio and cash
-        weight_cost = (self.cash + self.get_holdings_value()) * weight
+        weight_cost = (self.cash + self.get_holdings_value(date)) * weight
 
         # highest price stock in portfolio
-        min_price = self.find_most_expensive()
+        min_price = self.find_most_expensive(date)
 
         # can we afford to buy atleast 1 share of most expensive stock?
         if weight_cost < min_price:
@@ -152,14 +152,14 @@ class Portfolio:
         need_purchase = []
 
         # checking all funds in holdings and selling off shares until weight is met from above
-        for fund in self.portfolio.keys:
+        for fund in self.portfolio.keys():
             shares = self.get_share_count(fund)
             price = self.get_price(fund, date)
             value = price * shares
 
             # selling shares until at or below weight_cost
             while value > weight_cost:
-                self.sell(fund)
+                self.sell(fund, date)
                 value = price * (shares - 1)
 
             # if there is room for an additional share, store reference for rehandling
@@ -172,9 +172,11 @@ class Portfolio:
             price = self.get_price(fund, date)
             value = price * shares
 
-            while (value + price) <= weight_cost:
-                self.buy(fund)
-                value = price * (shares + 1)
+            # determining how many shares must be bought to roughly match weight_cost
+            quantity = int((weight_cost - value) / price)
+
+            # purchasing needed number of shares
+            self.bulk_buy(fund, quantity, date)
 
 
     def get_holdings_value(self, date: str) -> float:
@@ -182,17 +184,17 @@ class Portfolio:
 
         total = 0
 
-        for fund in self.portfolio.keys:
+        for fund in self.portfolio.keys():
             shares = self.portfolio[fund]['shares']
             total += shares * self.get_price(fund, date)
 
         return total
 
 
-    def get_portfolio_value(self) -> float:
+    def get_portfolio_value(self, date: str) -> float:
         """Returns the total value of the portfolio including cash assets."""
 
-        return self.cash + self.get_holdings_value()
+        return self.cash + self.get_holdings_value(date)
 
 
     def find_most_expensive(self, date: str) -> float:
@@ -200,7 +202,7 @@ class Portfolio:
 
         max_price = 0
 
-        for fund in self.portfolio.keys:
+        for fund in self.portfolio.keys():
             price = self.get_price(fund, date)
             if price > max_price:
                 max_price = price
@@ -219,12 +221,12 @@ class Portfolio:
         
         # attempting to locate and return the opening price at the given date
         try:
-            row = df.loc(df['Unnamed: 0'] == date)
-            return row['open'][0]
+            row = df.loc[df['Unnamed: 0'] == date]
+            return list(row['open'])[0] # sketchy way to parse price out of series
         # if price not found, returns -1 as sentinel value
         except:
-            print('Could not locate price data at the given date, returning -1...')
-            return -1
+            print(f'Could not locate price for {symbol} at the given date, returning -1...')
+            ValueError
 
 
     def underperformer(self, start_date: str, end_date: str) -> str:
@@ -232,7 +234,7 @@ class Portfolio:
 
         stats = dict()
 
-        for fund in self.portfolio.keys:
+        for fund in self.portfolio.keys():
             start = self.get_price(fund, start_date)
             end = self.get_price(fund, end_date)
             change = (end - start) / start
@@ -259,7 +261,7 @@ class Portfolio:
         """Finds and returns the dataframe for a given symbol in self.data."""
 
         # linear search for dataframe and return
-        for key in self.data.keys:
+        for key in self.data.keys():
             if key == symbol:
                 return self.data[key]
 

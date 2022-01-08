@@ -10,7 +10,14 @@ import datetime as dt
 
 portfolio = Portfolio()
 
-print(len(portfolio.portfolio.keys()))
+dates = portfolio.get_datelist()
 
-# month = '2001-01-01'
-# print(month[5:7])
+print(dates[0])
+
+df = portfolio.find_data('XLK')
+
+print(portfolio.get_price('XLK', '2001-01-19'))
+
+# print(df)
+
+# print(df.loc[df['Unnamed: 0'] == '2001-01-03'])
